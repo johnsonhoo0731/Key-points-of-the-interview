@@ -1,0 +1,159 @@
+<style>
+.select {
+  position: fixed;
+  border: 1px solid #000;
+  background: cyan;
+  opacity: .5;
+}
+#box {
+  width: 100px;
+  height: 100px;
+  background: greenyellow;
+  position: fixed;
+}
+</style>
+<div id="box"></div>
+<script>
+class Event {
+  // 事件池
+  events = {}
+  // 添加事件处理
+  on(eventName, fn) {
+    if (!this.events[eventName]) {
+      this.events[eventName] = []
+    }
+    if (!this.events[eventName].includes(fn)) {
+      this.events[eventName].push(fn)
+    }
+  } 
+  // 删除事件处理
+  off(eventName, fn) {
+    if (!this.events[eventName]) {
+      return
+    }
+    this.events[eventName].filter(item => item !== fn)
+  }
+  // 触发事件
+  dispatch(eventName, ...args) {
+    if (!this.events[eventName]) {
+      return
+    }
+    this.events[eventName].forEach(item => {
+      item.call(this, ...args)
+    })
+  }
+}
+
+class BaseDrag extends Event {
+  // 画框作用的元素container
+  constructor(el) {
+    super()
+    this.el = el
+    this.startMouse = {}
+    this.start()
+  }
+  start() {
+    const move = (e) => {
+      this.move(e)
+    }
+    this.el.addEventListener('mousedown', (e) => {
+      this.startMouse = {
+        x: e.clientX,
+        y: e.clientY
+      }
+      this.dispatch('dragstart', e)
+      document.addEventListener('mousemove', move)
+      document.addEventListener('mouseup', (e) => {
+        document.removeEventListener('mousemove', move)
+        this.end(e)
+      }, { once: true })
+    })
+  }
+  move(e) {
+    const nowMouse = {
+      y: e.clientY,
+      x: e.clientX
+    }
+    const disMouse = {
+      x: nowMouse.x - this.startMouse.x,
+      y: nowMouse.y - this.startMouse.y
+    }
+    this.dispatch('drag', e, nowMouse, disMouse)
+  }
+  end(e) {
+    this.dispatch('dragend')
+  }
+}
+
+class Drag extends BaseDrag {
+  constructor(el) {
+    super(el)
+    this.startEl = {}
+    this.on('dragstart', (e) => {
+      this.startEl = this.getOffset()
+      e.preventDefault();
+    })
+    this.on('drag', (e, nowMouse, disMouse) => {
+      this.setOffset(disMouse)
+    })
+  }
+  getOffset() {
+    return {
+      x: parseFloat(getComputedStyle(this.el)['left']),
+      y: parseFloat(getComputedStyle(this.el)['top'])
+    }
+  }
+  setOffset(dis) {
+    console.log(dis)
+    this.el.style.left = dis.x + this.startEl.x + 'px'
+    this.el.style.top = dis.y + this.startEl.y + 'px'
+  }
+}
+
+{
+  const box = document.querySelector('#box')
+  const boxDrag = new Drag(box)
+  
+}
+</script>
+
+<script>
+// let select = null
+// let startMouse = {}
+// const move = (e) => {
+//   // 画框中
+//   const nowMouse = {
+//     x: e.clientX,
+//     y: e.clientY
+//   }
+//   const disMouse = {
+//     x: nowMouse.x - startMouse.x,
+//     y: nowMouse.y - startMouse.y
+//   }
+//   // 计算left/top/width/height
+//   const l = Math.min(nowMouse.x, startMouse.x)
+//   const t = Math.min(nowMouse.y, startMouse.y)
+//   const w = Math.abs(disMouse.x)
+//   const h = Math.abs(disMouse.y)
+//   select.style.width = w + 'px'
+//   select.style.height = h + 'px'
+//   select.style.top = t + 'px'
+//   select.style.left = l + 'px'
+// }
+// document.addEventListener('mousedown', (e) => {
+//   // 准备画框
+//   startMouse = {
+//     x: e.clientX,
+//     y: e.clientY
+//   }
+//   select = document.createElement('div')
+//   select.className = 'select'
+//   document.body.appendChild(select)
+//   document.addEventListener('mousemove', move)
+//   document.addEventListener('mouseup', () => {
+//     // 结束画框
+//     document.body.removeChild(select)
+//     document.removeEventListener('mousemove', move)
+//   }, { once: true })
+// })
+</script>
